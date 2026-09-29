@@ -1,0 +1,76 @@
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #e6ece8;
+  color: #16241e;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Native dialog styling per modern-web-guidance */
+dialog.ainala-dialog {
+  border: none;
+  padding: 0;
+  background: transparent;
+  max-width: 420px;
+  width: calc(100% - 32px);
+  margin: auto;
+  overflow: visible;
+}
+
+dialog.ainala-dialog::backdrop {
+  background-color: rgba(22, 36, 30, 0.65);
+  backdrop-filter: blur(3px);
+}
+
+dialog.ainala-sheet {
+  border: none;
+  padding: 0;
+  background: transparent;
+  max-width: 420px;
+  width: 100%;
+  margin: auto auto 0 auto;
+  overflow: visible;
+}
+
+dialog.ainala-sheet::backdrop {
+  background-color: rgba(22, 36, 30, 0.45);
+  backdrop-filter: blur(2px);
+}
+
+@keyframes pulseSlow {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.92;
+  }
+  50% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+}
+
+@keyframes moveJoint {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-38deg);
+  }
+}
+
+.exercise-anim-limb {
+  transform-origin: 120px 90px;
+  animation: moveJoint 3.2s ease-in-out infinite;
+}
+
+input[type="range"] {
+  height: 6px;
+  border-radius: 999px;
+  cursor: pointer;
+}
