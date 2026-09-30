@@ -98,6 +98,28 @@ export default function App() {
     window.scrollTo(0, 0);
   }, [tab, guidedId, editingProfile]);
 
+  // «Жидкое стекло»: блик на карточке следует за курсором (только устройства с hover)
+  useEffect(() => {
+    if (!window.matchMedia?.("(hover: hover) and (prefers-reduced-motion: no-preference)").matches) return;
+    let frame = 0;
+    const onMove = (e) => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        const el = e.target.closest?.(".panel, .card, .item, .phase-card");
+        if (!el) return;
+        const r = el.getBoundingClientRect();
+        el.style.setProperty("--mx", `${e.clientX - r.left}px`);
+        el.style.setProperty("--my", `${e.clientY - r.top}px`);
+      });
+    };
+    window.addEventListener("pointermove", onMove, { passive: true });
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      cancelAnimationFrame(frame);
+    };
+  }, []);
+
   const sos = <RedFlagsModal open={sosOpen} onClose={() => setSosOpen(false)} />;
 
   // ─── Анкета (первый запуск или редактирование) ───
@@ -212,6 +234,7 @@ export default function App() {
       </header>
 
       <main className="content">
+        <div className="route" key={tab}>
         {tab === "home" && (
           <HomeScreen
             profile={profile}
@@ -266,6 +289,7 @@ export default function App() {
         {tab === "profile" && <ProfileScreen profile={profile} onEdit={() => setEditingProfile(true)} onExport={exportAll} onWipe={wipeAll} />}
         </div>
         )}
+        </div>
       </main>
 
       <nav className="bottom-nav" aria-label="Основная навигация">

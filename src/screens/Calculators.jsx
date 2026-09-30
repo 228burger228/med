@@ -69,7 +69,7 @@ export function CalculatorsScreen({ profile }) {
   } else if (painDuring >= 4 || morning === "mild") {
     verdict = { tone: "amber", badge: "🟡 Жёлтая зона · без увеличения", title: "Удерживайте текущий объём", desc: "Не повышайте вес и число повторений. Работайте в комфортной амплитуде без рывков." };
   }
-  const vt = { green: [C.greenSoft, "#1E7A50"], amber: [C.amberSoft, "#8A5A00"], red: [C.redSoft, C.red] }[verdict.tone];
+  const vt = { green: [C.greenSoft, "#0E7A43"], amber: [C.amberSoft, "#8A5600"], red: [C.redSoft, C.red] }[verdict.tone];
 
   return (
     <div className="screen">
@@ -103,11 +103,11 @@ export function CalculatorsScreen({ profile }) {
               <span className="eyebrow" style={{ color: C.teal }}>Ориентир · {part}</span>
               <span className="mono" style={{ fontSize: 12, fontWeight: 700, color: C.teal }}>~{progressPct}%</span>
             </div>
-            <div style={{ height: 8, background: "rgba(31,107,92,.15)", borderRadius: 999, overflow: "hidden", marginBottom: 10 }}>
+            <div style={{ height: 8, background: "rgba(11,138,143,.16)", borderRadius: 999, overflow: "hidden", marginBottom: 10 }}>
               <div style={{ width: `${progressPct}%`, height: "100%", background: C.teal, borderRadius: 999, transition: "width .3s" }} />
             </div>
             {rows.map((row, i) => (
-              <div key={row.label} className="between" style={{ padding: "9px 0", borderTop: i ? "1px solid rgba(31,107,92,.14)" : "none" }}>
+              <div key={row.label} className="between" style={{ padding: "9px 0", borderTop: i ? "1px solid rgba(11,138,143,.16)" : "none" }}>
                 <span style={{ fontSize: 13 }}>{row.label}</span>
                 <span className="mono" style={{ fontSize: 12.5, fontWeight: 700, background: "#fff", padding: "3px 8px", borderRadius: 6, color: weeksPassed >= row.range[0] ? C.teal : C.inkSoft, whiteSpace: "nowrap" }}>
                   {row.range[0]}–{row.range[1]} нед.
@@ -139,7 +139,7 @@ export function CalculatorsScreen({ profile }) {
               <div className="stat-value mono" style={{ fontSize: 22, color: C.teal }}>{proteinGrams} г</div>
               <div className="stat-label"><strong>Белок в сутки</strong><br />≈{Math.round(proteinGrams / 4)} г × 4 приёма пищи</div>
             </div>
-            <div className="stat" style={{ background: C.skySoft, borderColor: "#c6dbe9" }}>
+            <div className="stat" style={{ background: C.skySoft, borderColor: "#BBD8FF" }}>
               <div className="stat-value mono" style={{ fontSize: 22, color: C.sky }}>{waterLiters} л</div>
               <div className="stat-label"><strong>Жидкость в сутки</strong><br />≈30 мл на кг веса</div>
             </div>

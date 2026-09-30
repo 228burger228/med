@@ -13,8 +13,8 @@ import { VideoHubModal } from "./Exercises";
 
 const CARE_ICONS = { Snowflake, ArrowUpFromLine, Egg, Footprints, Activity };
 const TINTS = ["green", "blue", "yellow"];
-const PAIN_BLUE = "#5B9BD5";
-const AFTER_GREEN = "#3DAA5C";
+const PAIN_BLUE = "#0A7CFF";
+const AFTER_GREEN = "#16B364";
 
 function greeting() {
   const h = new Date().getHours();
@@ -98,7 +98,7 @@ function ParametersCard({ profile, painLog, sessions, done, plan, onAddPain, onM
 
       <div style={{ height: 230, position: "relative" }}>
         {tab === "pain" && painPoints < 2 ? (
-          <div className="empty" style={{ height: "100%", display: "grid", placeItems: "center", background: "#f7f9f8", borderRadius: 16 }}>
+          <div className="empty" style={{ height: "100%", display: "grid", placeItems: "center", background: "rgba(255,255,255,.45)", borderRadius: 16 }}>
             <div>
               <div style={{ fontSize: 28, marginBottom: 6 }}>📈</div>
               График появится после двух отметок боли.
@@ -112,11 +112,11 @@ function ParametersCard({ profile, painLog, sessions, done, plan, onAddPain, onM
           <ResponsiveContainer width="100%" height="100%">
             {tab === "sessions" ? (
               <BarChart data={data} margin={{ top: 8, right: 4, bottom: 0, left: -18 }}>
-                <CartesianGrid stroke="#EEF2F0" vertical={false} />
+                <CartesianGrid stroke="rgba(15,42,42,.07)" vertical={false} />
                 <XAxis dataKey="label" interval={interval} {...axis} />
                 <YAxis allowDecimals={false} {...axis} />
                 <Tooltip {...tooltip} formatter={(v) => [v, "Тренировок"]} cursor={{ fill: "rgba(0,0,0,.04)" }} />
-                <Bar dataKey="sessions" fill={C.black} radius={[6, 6, 0, 0]} maxBarSize={22} />
+                <Bar dataKey="sessions" fill={C.teal} radius={[6, 6, 0, 0]} maxBarSize={22} />
               </BarChart>
             ) : (
               <AreaChart data={data} margin={{ top: 8, right: 4, bottom: 0, left: -18 }}>
@@ -130,7 +130,7 @@ function ParametersCard({ profile, painLog, sessions, done, plan, onAddPain, onM
                     <stop offset="100%" stopColor={AFTER_GREEN} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid stroke="#EEF2F0" vertical={false} />
+                <CartesianGrid stroke="rgba(15,42,42,.07)" vertical={false} />
                 <XAxis dataKey="label" interval={interval} {...axis} />
                 {tab === "pain" ? (
                   <>
@@ -160,7 +160,7 @@ function ParametersCard({ profile, painLog, sessions, done, plan, onAddPain, onM
           </>
         )}
         {tab === "adherence" && <span className="row" style={{ gap: 6 }}><Dot color={AFTER_GREEN} /> % упражнений плана за день</span>}
-        {tab === "sessions" && <span className="row" style={{ gap: 6 }}><Dot color={C.black} /> Завершённые тренировки</span>}
+        {tab === "sessions" && <span className="row" style={{ gap: 6 }}><Dot color={C.teal} /> Завершённые тренировки</span>}
       </div>
     </section>
   );
@@ -437,11 +437,11 @@ export function HomeScreen({
           <button
             className="stat-chip"
             onClick={openPain}
-            style={painChipTone ? { background: { green: "#DFF3E8", amber: "#FDF1D6", red: "#F9E0DA" }[painChipTone] } : { background: C.black, color: "#fff" }}
+            style={painChipTone ? { background: { green: C.greenSoft, amber: C.amberSoft, red: C.redSoft }[painChipTone] } : { background: "var(--grad-primary)", color: "#fff", borderColor: "transparent" }}
           >
             {todayPain ? `Боль сегодня ${todayPain.pain}/10` : "+ Отметить боль"}
           </button>
-          <button className="stat-chip desktop-only" style={{ color: C.red, background: "#F9E0DA" }} onClick={onShowSos}>
+          <button className="stat-chip desktop-only" style={{ color: C.red, background: C.redSoft }} onClick={onShowSos}>
             <ShieldAlert size={15} /> SOS
           </button>
         </div>
