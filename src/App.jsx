@@ -15,6 +15,7 @@ import {
 } from "./data/mockData";
 import { sanitizeText, loadPersistedState, savePersistedState, exportGdprDataSnapshot } from "./utils/security";
 import { analyzeInjuryDescription, generateClinicalAiReply } from "./services/aiService";
+import { playSoftTick, playPhaseSwitch, playVictoryChord } from "./utils/sound";
 
 // ─── SHARED UI ──────────────────────────────────────────────────────────────
 
@@ -563,14 +564,15 @@ function ExercisesScreen({ onSelect, injuryPart }) {
 
 // ─── GUIDED SESSION ───────────────────────────────────────────────────────────
 
-function GuidedSession({ exercise, onExit, isPremium }) {
+function GuidedSession({ exercise, onExit }) {
   const [setIndex, setSetIndex] = useState(0);
   const [phase, setPhase] = useState("work");
   const [secondsLeft, setSecondsLeft] = useState(exercise.workSec);
   const [elapsed, setElapsed] = useState(0);
   const [running, setRunning] = useState(true);
   const [done, setDone] = useState(false);
-  const [ccEnabled, setCcEnabled] = useState(isPremium);
+  const [ccEnabled, setCcEnabled] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(true);
 
   const totalPhaseSec = phase === "work" ? exercise.workSec : exercise.restSec;
   const ringPercent = Math.round(((totalPhaseSec - secondsLeft) / totalPhaseSec) * 100);
@@ -582,16 +584,28 @@ function GuidedSession({ exercise, onExit, isPremium }) {
         if (s <= 1) {
           setElapsed(0);
           if (phase === "work") {
-            if (setIndex + 1 >= exercise.sets) { setDone(true); return 0; }
-            setPhase("rest"); return exercise.restSec;
-          } else { setSetIndex(i => i + 1); setPhase("work"); return exercise.workSec; }
+            if (setIndex + 1 >= exercise.sets) {
+              if (soundEnabled) playVictoryChord();
+              setDone(true);
+              return 0;
+            }
+            if (soundEnabled) playPhaseSwitch(false);
+            setPhase("rest");
+            return exercise.restSec;
+          } else {
+            if (soundEnabled) playPhaseSwitch(true);
+            setSetIndex(i => i + 1);
+            setPhase("work");
+            return exercise.workSec;
+          }
         }
+        if (soundEnabled && s <= 4) playSoftTick();
         setElapsed(e => e + 1);
         return s - 1;
       });
     }, 1000);
     return () => clearInterval(t);
-  }, [running, phase, setIndex, done, exercise]);
+  }, [running, phase, setIndex, done, exercise, soundEnabled]);
 
   const activeSubtitle = phase === "rest"
     ? "Отдых: расслабьте рабочую группу мышц, дышите глубоко и ровно."
@@ -605,11 +619,14 @@ function GuidedSession({ exercise, onExit, isPremium }) {
           <span style={{ background: "rgba(255,255,255,0.14)", color: "#fff", padding: "3px 10px", borderRadius: 999, fontSize: 11, fontWeight: 600 }}>
             {exercise.part} · {exercise.targetRom || "Контроль амплитуды"}
           </span>
-          {isPremium && (
+          <div style={{ display: "flex", gap: 6 }}>
             <button onClick={() => setCcEnabled(v => !v)} style={{ background: ccEnabled ? C.amber : "rgba(255,255,255,0.18)", color: "#fff", border: "none", borderRadius: 8, padding: "5px 9px", fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}>
               CC {ccEnabled ? "ВКЛ" : "ВЫКЛ"}
             </button>
-          )}
+            <button onClick={() => setSoundEnabled(v => !v)} style={{ background: soundEnabled ? C.pineSoft : "rgba(255,255,255,0.18)", color: "#fff", border: "none", borderRadius: 8, padding: "5px 9px", fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}>
+              {soundEnabled ? "🔊 Звук" : "🔇 Тихо"}
+            </button>
+          </div>
         </div>
         {/* SVG-анимация сустава */}
         <div style={{ display: "flex", justifyContent: "center", height: 120 }}>

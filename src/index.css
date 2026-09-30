@@ -1,3 +1,9 @@
+:root {
+  --transition: 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  --shadow-card: 0 4px 18px rgba(22, 36, 30, 0.04);
+  --shadow-hover: 0 8px 26px rgba(22, 36, 30, 0.08);
+}
+
 * {
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
@@ -7,7 +13,7 @@ html,
 body {
   margin: 0;
   padding: 0;
-  background-color: #e6ece8;
+  background: radial-gradient(circle at 50% 0%, #eef3ef 0%, #dfe7e2 100%);
   color: #16241e;
   font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -26,7 +32,7 @@ dialog.ainala-dialog {
 
 dialog.ainala-dialog::backdrop {
   background-color: rgba(22, 36, 30, 0.65);
-  backdrop-filter: blur(3px);
+  backdrop-filter: blur(4px);
 }
 
 dialog.ainala-sheet {
@@ -41,17 +47,17 @@ dialog.ainala-sheet {
 
 dialog.ainala-sheet::backdrop {
   background-color: rgba(22, 36, 30, 0.45);
-  backdrop-filter: blur(2px);
+  backdrop-filter: blur(3px);
 }
 
-@keyframes pulseSlow {
+@keyframes pulseDot {
   0%, 100% {
+    opacity: 1;
     transform: scale(1);
-    opacity: 0.92;
   }
   50% {
-    transform: scale(1.06);
-    opacity: 1;
+    opacity: 0.45;
+    transform: scale(0.85);
   }
 }
 
@@ -65,8 +71,26 @@ dialog.ainala-sheet::backdrop {
 }
 
 .exercise-anim-limb {
-  transform-origin: 120px 90px;
+  transform-origin: 120px 68px;
   animation: moveJoint 3.2s ease-in-out infinite;
+}
+
+.pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #20ba78;
+  box-shadow: 0 0 8px #20ba78;
+  display: inline-block;
+  animation: pulseDot 2s infinite ease-in-out;
+}
+
+button {
+  transition: transform var(--transition), box-shadow var(--transition), opacity var(--transition), background-color var(--transition);
+}
+
+button:active {
+  transform: scale(0.98);
 }
 
 input[type="range"] {
