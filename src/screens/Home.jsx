@@ -100,7 +100,9 @@ function ParametersCard({ profile, painLog, sessions, done, plan, onAddPain, onM
         {tab === "pain" && painPoints < 2 ? (
           <div className="empty" style={{ height: "100%", display: "grid", placeItems: "center", background: "rgba(255,255,255,.45)", borderRadius: 16 }}>
             <div>
-              <div style={{ fontSize: 28, marginBottom: 6 }}>📈</div>
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
+                <span className="icon-tile" style={{ background: C.tealSoft }}><Activity size={18} color={C.teal} /></span>
+              </div>
               График появится после двух отметок боли.
               <br />
               <button className="btn btn-primary sm" style={{ marginTop: 12 }} onClick={onAddPain}>

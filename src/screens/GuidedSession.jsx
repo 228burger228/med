@@ -1,5 +1,5 @@
 import React, { useEffect, useReducer, useRef, useState } from "react";
-import { Play, Pause, SkipForward, ChevronLeft, Subtitles, Volume2, VolumeX } from "lucide-react";
+import { Play, Pause, SkipForward, ChevronLeft, Subtitles, Volume2, VolumeX, Lightbulb, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { C } from "../theme/tokens";
 import { playSoftTick, playPhaseSwitch, playVictoryChord } from "../utils/sound";
 import { Pill, Card, RecoveryRing, PainSlider, PainAdvice } from "../components/ui/SharedUI";
@@ -115,14 +115,26 @@ export function GuidedSession({ exercise, onFinish, onExit }) {
             </div>
             <Card>
               <div style={{ fontSize: 13.5, lineHeight: 1.55 }}>{exercise.instructions}</div>
-              {exercise.biomechanicsTip && <div className="alert info" style={{ margin: "10px 0 0" }}>💡 {exercise.biomechanicsTip}</div>}
-              <div className="alert urgent" style={{ margin: "8px 0 0" }}>⚠ {exercise.caution}</div>
+              {exercise.biomechanicsTip && (
+                <div className="alert info" style={{ margin: "10px 0 0" }}>
+                  <Lightbulb size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+                  <span>{exercise.biomechanicsTip}</span>
+                </div>
+              )}
+              <div className="alert urgent" style={{ margin: "8px 0 0" }}>
+                <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+                <span>{exercise.caution}</span>
+              </div>
             </Card>
           </>
         ) : (
           <>
             <div style={{ textAlign: "center", padding: "8px 0 14px" }}>
-              <div style={{ fontSize: 40 }}>🌿</div>
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
+                <span className="icon-tile" style={{ background: C.tealSoft, width: 56, height: 56 }}>
+                  <CheckCircle2 size={28} color={C.teal} />
+                </span>
+              </div>
               <h1 className="h1" style={{ fontSize: 23, marginTop: 6 }}>Тренировка завершена</h1>
               <p className="muted">Отличная работа! Как сустав после упражнения?</p>
             </div>

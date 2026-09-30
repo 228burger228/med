@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Play, Video, ExternalLink, Subtitles, AlertTriangle, Star } from "lucide-react";
+import { Play, Video, ExternalLink, Subtitles, AlertTriangle, Star, Lightbulb } from "lucide-react";
 import { C } from "../theme/tokens";
 import { EXERCISES, BODY_PARTS, PHASES } from "../data/mockData";
 import { Pill, ScreenTitle, Modal, ModalHeader } from "../components/ui/SharedUI";
@@ -106,9 +106,15 @@ export function VideoHubModal({ exercise, onClose, onStart }) {
           ))}
 
           {exercise.biomechanicsTip && (
-            <div className="alert info" style={{ marginTop: 8 }}>💡 {exercise.biomechanicsTip}</div>
+            <div className="alert info" style={{ marginTop: 8 }}>
+              <Lightbulb size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+              <span>{exercise.biomechanicsTip}</span>
+            </div>
           )}
-          <div className="alert urgent">⚠ {exercise.caution}</div>
+          <div className="alert urgent">
+            <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+            <span>{exercise.caution}</span>
+          </div>
 
           <div className="row" style={{ gap: 8 }}>
             <button className="btn btn-primary" style={{ flex: 1.3 }} onClick={() => { close(); onStart(exercise.id); }}>

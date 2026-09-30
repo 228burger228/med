@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { Moon, Utensils, Heart, Droplets, Trash2, TrendingDown, TrendingUp } from "lucide-react";
+import { Moon, Utensils, Heart, Droplets, Trash2, TrendingDown, TrendingUp, Award, Flame, Dumbbell, Calendar, CheckCircle2, AlertTriangle } from "lucide-react";
 import { C, FONT } from "../theme/tokens";
 import { RECOVERY_CARE_CHECKLIST } from "../data/mockData";
 import { sanitizeText, detectRedFlagsInText } from "../utils/security";
@@ -22,12 +22,12 @@ export function ProgressScreen({ profile, painLog, sessions, diary, onAddDiary, 
   const daysIn = daysBetween(profile.startDate || dateKey(), dateKey()) + 1;
 
   const badges = [
-    { icon: "🎯", label: "Первая тренировка", earned: sessions.length >= 1 },
-    { icon: "🔥", label: "3 дня подряд", earned: bestStreak >= 3 },
-    { icon: "🏅", label: "7 дней подряд", earned: bestStreak >= 7 },
-    { icon: "💪", label: "10 тренировок", earned: sessions.length >= 10 },
-    { icon: "📉", label: "Боль ↓ на 2 балла", earned: !!trend && trend.count > 1 && trend.first - trend.last >= 2 },
-    { icon: "🗓", label: "Месяц с Ainala", earned: daysIn >= 30 },
+    { icon: CheckCircle2, bg: C.tealSoft, fg: C.teal, label: "Первая тренировка", earned: sessions.length >= 1 },
+    { icon: Flame, bg: C.amberSoft, fg: C.amber, label: "3 дня подряд", earned: bestStreak >= 3 },
+    { icon: Award, bg: C.amberSoft, fg: C.amber, label: "7 дней подряд", earned: bestStreak >= 7 },
+    { icon: Dumbbell, bg: C.tealSoft, fg: C.teal, label: "10 тренировок", earned: sessions.length >= 10 },
+    { icon: TrendingDown, bg: C.skySoft, fg: C.sky, label: "Боль ↓ на 2 балла", earned: !!trend && trend.count > 1 && trend.first - trend.last >= 2 },
+    { icon: Calendar, bg: C.skySoft, fg: C.sky, label: "Месяц с Ainala", earned: daysIn >= 30 },
   ];
 
   const addEntry = () => {
@@ -50,7 +50,7 @@ export function ProgressScreen({ profile, painLog, sessions, diary, onAddDiary, 
         </div>
         <div className="stat">
           <div className="stat-value" style={{ color: C.coral }}>{streak}</div>
-          <div className="stat-label">Дней подряд 🔥</div>
+          <div className="stat-label row" style={{ gap: 4 }}>Дней подряд <Flame size={13} color={C.coral} /></div>
         </div>
         <div className="stat">
           <div className="stat-value">{sessions.length}</div>
@@ -85,7 +85,10 @@ export function ProgressScreen({ profile, painLog, sessions, diary, onAddDiary, 
           </ResponsiveContainer>
         ) : (
           <div className="empty">
-            📈 График появится, когда вы отметите боль хотя бы два дня.
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
+              <span className="icon-tile" style={{ background: C.tealSoft }}><TrendingUp size={18} color={C.teal} /></span>
+            </div>
+            График появится, когда вы отметите боль хотя бы два дня.
             <br />
             Отметка — на главном экране.
           </div>
@@ -118,7 +121,11 @@ export function ProgressScreen({ profile, painLog, sessions, diary, onAddDiary, 
                 <Trash2 size={14} />
               </button>
             </div>
-            {e.redFlag && <div style={{ fontSize: 11.5, fontWeight: 700, color: C.red, marginBottom: 2 }}>⚠ {e.redFlag}</div>}
+            {e.redFlag && (
+              <div className="row" style={{ gap: 5, fontSize: 11.5, fontWeight: 700, color: C.red, marginBottom: 2 }}>
+                <AlertTriangle size={13} /> {e.redFlag}
+              </div>
+            )}
             <div style={{ fontSize: 13, lineHeight: 1.5 }}>{e.text}</div>
           </div>
         ))}
@@ -126,12 +133,19 @@ export function ProgressScreen({ profile, painLog, sessions, diary, onAddDiary, 
 
       <h2 className="h2">Достижения</h2>
       <div className="grid-2" style={{ marginBottom: 10 }}>
-        {badges.map((b) => (
-          <div key={b.label} className="stat" style={{ textAlign: "center", opacity: b.earned ? 1 : 0.5, background: b.earned ? C.tealSoft : C.paper, borderColor: b.earned ? C.tealBorder : C.line, filter: b.earned ? "none" : "grayscale(1)" }}>
-            <div style={{ fontSize: 24 }}>{b.icon}</div>
-            <div style={{ fontSize: 12, fontWeight: 600, marginTop: 6 }}>{b.label}</div>
-          </div>
-        ))}
+        {badges.map((b) => {
+          const BadgeIcon = b.icon;
+          return (
+            <div key={b.label} className="stat" style={{ textAlign: "center", opacity: b.earned ? 1 : 0.55, background: b.earned ? C.tealSoft : C.paper, borderColor: b.earned ? C.tealBorder : C.line, filter: b.earned ? "none" : "grayscale(1)" }}>
+              <div style={{ display: "flex", justifyContent: "center" }}>
+                <span className="icon-tile" style={{ background: b.bg, width: 42, height: 42 }}>
+                  <BadgeIcon size={20} color={b.fg} />
+                </span>
+              </div>
+              <div style={{ fontSize: 12, fontWeight: 600, marginTop: 8 }}>{b.label}</div>
+            </div>
+          );
+        })}
       </div>
 
       <h2 className="h2">Опоры восстановления</h2>
