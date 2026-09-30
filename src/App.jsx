@@ -6,7 +6,7 @@ import {
   Home, Dumbbell, TrendingUp, MessageCircle, MoreHorizontal, ChevronLeft, ChevronRight,
   Play, Pause, SkipForward, Check, Flame, Calendar as CalendarIcon, User, BookOpen,
   Stethoscope, Users, Send, Award, Camera, Pill as PillIcon, X, Share2, Video, Edit3,
-  ShieldAlert, PhoneCall, Moon, Utensils, Heart, AlertTriangle,
+  ShieldAlert, PhoneCall, Moon, Utensils, Heart, AlertTriangle, Calculator,
 } from "lucide-react";
 import { C, FONT, DISPLAY, MONO } from "./theme/tokens";
 import {
@@ -16,6 +16,12 @@ import {
 import { sanitizeText, loadPersistedState, savePersistedState, exportGdprDataSnapshot } from "./utils/security";
 import { analyzeInjuryDescription, generateClinicalAiReply } from "./services/aiService";
 import { playSoftTick, playPhaseSwitch, playVictoryChord } from "./utils/sound";
+import {
+  ExpressDemoBar,
+  CalculatorsScreen,
+  VideoHubModal,
+  PhotoTrackerWidget,
+} from "./components/CalculatorsAndVideoHub";
 
 // ─── SHARED UI ──────────────────────────────────────────────────────────────
 
@@ -209,7 +215,7 @@ function PremiumModal({ open, onClose, onSubscribe }) {
 
 // ─── LOGIN ────────────────────────────────────────────────────────────────────
 
-function LoginScreen({ onLogin }) {
+function LoginScreen({ onLogin, onQuickDemo }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -236,6 +242,11 @@ function LoginScreen({ onLogin }) {
         <button onClick={submit} style={{ width: "100%", background: C.pine, color: "#fff", border: "none", borderRadius: 12, padding: "13px 0", fontFamily: FONT, fontWeight: 700, fontSize: 14, cursor: "pointer", marginTop: 6 }}>
           Войти
         </button>
+        {onQuickDemo && (
+          <button onClick={onQuickDemo} style={{ width: "100%", background: C.pineLight, color: C.pine, border: `1px solid ${C.pineBorder}`, borderRadius: 12, padding: "11px 0", fontFamily: FONT, fontWeight: 700, fontSize: 13, cursor: "pointer", marginTop: 8 }}>
+            ⚡ Быстрый вход (Демо без анкеты)
+          </button>
+        )}
       </Card>
       <div style={{ textAlign: "center", fontFamily: FONT, fontSize: 12.5, color: C.pine, marginTop: 8, cursor: "pointer" }}>
         Ещё нет аккаунта? Зарегистрироваться
@@ -520,12 +531,49 @@ function HomeScreen({ todayItems, toggleDone, streak, onStartGuided, onShowSos }
 // ─── EXERCISES ────────────────────────────────────────────────────────────────
 
 function ExercisesScreen({ onSelect, injuryPart }) {
-  const filtered = EXERCISES.filter(e => e.part === injuryPart);
+  const [selectedCategory, setSelectedCategory] = useState(injuryPart || "Все");
   const [videoEx, setVideoEx] = useState(null);
+
+  useEffect(() => {
+    if (injuryPart) setSelectedCategory(injuryPart);
+  }, [injuryPart]);
+
+  const categories = ["Все", ...BODY_PARTS];
+  const filtered = selectedCategory === "Все"
+    ? EXERCISES
+    : EXERCISES.filter(e => e.part === selectedCategory);
+
   return (
     <div style={{ padding: "20px 18px 24px" }}>
-      <ScreenTitle>Упражнения</ScreenTitle>
-      <div style={{ fontFamily: FONT, fontSize: 12.5, color: C.inkSoft, marginBottom: 16 }}>Подобрано для категории «{injuryPart}»</div>
+      <ScreenTitle>Видео-база и ЛФК</ScreenTitle>
+      <div style={{ fontFamily: FONT, fontSize: 12.5, color: C.inkSoft, marginBottom: 12 }}>
+        Пошаговые видео-разборы биомеханики с субтитрами [CC] и таймкодами
+      </div>
+
+      {/* Фильтр по суставам */}
+      <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 8, marginBottom: 12 }}>
+        {categories.map(cat => (
+          <button
+            key={cat}
+            onClick={() => setSelectedCategory(cat)}
+            style={{
+              background: selectedCategory === cat ? C.pine : C.paper,
+              color: selectedCategory === cat ? "#fff" : C.inkSoft,
+              border: `1px solid ${selectedCategory === cat ? C.pine : C.line}`,
+              borderRadius: 999,
+              padding: "6px 12px",
+              fontFamily: FONT,
+              fontSize: 12,
+              fontWeight: 600,
+              whiteSpace: "nowrap",
+              cursor: "pointer",
+            }}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+
       {filtered.map(ex => (
         <div key={ex.id} style={{ background: C.paper, border: `1px solid ${C.line}`, borderRadius: 14, padding: 16, marginBottom: 10 }}>
           <div onClick={() => onSelect(ex.id)} style={{ display: "flex", gap: 12, cursor: "pointer" }}>
@@ -537,26 +585,31 @@ function ExercisesScreen({ onSelect, injuryPart }) {
                 <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 15, color: C.ink }}>{ex.name}</div>
                 <Pill tone={ex.difficulty === "Лёгкая" ? "pine" : "amber"}>{ex.difficulty}</Pill>
               </div>
-              <div style={{ fontFamily: FONT, fontSize: 13, color: C.inkSoft, marginTop: 6 }}>{ex.sets} × {ex.reps} повт. · {ex.phase} фаза</div>
+              <div style={{ fontFamily: FONT, fontSize: 13, color: C.inkSoft, marginTop: 6 }}>
+                {ex.part} · {ex.sets} × {ex.reps} повт. · {ex.phase} фаза
+              </div>
               {ex.targetRom && <div style={{ fontFamily: FONT, fontSize: 12, color: C.amberDark, marginTop: 3 }}>Цель: {ex.targetRom}</div>}
             </div>
           </div>
           <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
             <button onClick={() => onSelect(ex.id)}
               style={{ flex: 1, background: C.pine, color: "#fff", border: "none", borderRadius: 10, padding: "9px 0", fontFamily: FONT, fontWeight: 700, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-              <Play size={13} fill="#fff" /> Начать
+              <Play size={13} fill="#fff" /> Тренировка
             </button>
-            <a href={ex.videoUrl} target="_blank" rel="noreferrer"
-              style={{ flex: 1, background: C.amberSoft, color: C.amberDark, border: "none", borderRadius: 10, padding: "9px 0", fontFamily: FONT, fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, textDecoration: "none" }}>
-              <Video size={13} /> Смотреть
-            </a>
+            <button onClick={() => setVideoEx(ex)}
+              style={{ flex: 1, background: C.amberSoft, color: C.amberDark, border: "none", borderRadius: 10, padding: "9px 0", fontFamily: FONT, fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+              <Video size={14} /> Разбор [CC]
+            </button>
           </div>
         </div>
       ))}
-      {filtered.length === 0 && (
-        <div style={{ textAlign: "center", padding: "40px 0", fontFamily: FONT, fontSize: 13, color: C.inkSoft }}>
-          Упражнения для «{injuryPart}» пока не добавлены.
-        </div>
+
+      {videoEx && (
+        <VideoHubModal
+          exercise={videoEx}
+          onClose={() => setVideoEx(null)}
+          onStartWorkout={id => onSelect(id)}
+        />
       )}
     </div>
   );
@@ -820,6 +873,9 @@ function ProgressScreen({ log, streak, adherence, pain, setPain, onLogPain }) {
           </Card>
         );
       })}
+
+      <h2 style={{ fontFamily: DISPLAY, fontSize: 16, color: C.ink, margin: "18px 0 10px", fontWeight: 600 }}>Фото «до / после»</h2>
+      <PhotoTrackerWidget />
     </div>
   );
 }
@@ -1108,18 +1164,38 @@ function LibraryScreen({ submissions, onSubmit }) {
 
 // ─── DOCTOR ───────────────────────────────────────────────────────────────────
 
-function DoctorScreen() {
+function DoctorScreen({ injuryProfile }) {
   const [shared, setShared] = useState(false);
+  const [copiedTg, setCopiedTg] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [doctor, setDoctor] = useState({ name: "др. Окафор", specialty: "Ортопед-травматолог", phone: "", email: "" });
+  const [doctor, setDoctor] = useState({ name: "др. Окафор", specialty: "Ортопед-травматолог", phone: "+7 900 123-45-67", email: "doctor@clinic.ru" });
   const [draft, setDraft] = useState(doctor);
   const save = () => { setDoctor(draft); setEditing(false); };
+
+  const copyForTelegram = () => {
+    const text = `🩺 Клинический отчёт Ainala Rehab\nПациент: Сэм\nКатегория: ${injuryProfile?.part || "Колено"} (${injuryProfile?.phase || "Ранняя"} фаза)\nВыполнение ЛФК (7 дн.): 86%\nДинамика боли: 6/10 → 3/10\nПодвижность (ROM): +3 балла\nПропущено сессий: 1`;
+    navigator.clipboard?.writeText(text);
+    setCopiedTg(true);
+    setTimeout(() => setCopiedTg(false), 2500);
+  };
+
   return (
     <div style={{ padding: "20px 18px 24px" }}>
-      <ScreenTitle>Врач</ScreenTitle>
+      <ScreenTitle>Врач и отчёт</ScreenTitle>
       <Card>
-        <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 14.5, color: C.ink, marginBottom: 4 }}>Отчёт за неделю</div>
-        <div style={{ fontFamily: FONT, fontSize: 13, color: C.inkSoft, lineHeight: 1.5 }}>Выполнение: 86% · Боль: 6→3 · Подвижность: +3 балла · Пропущено: 1 сессия</div>
+        <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 14.5, color: C.ink, marginBottom: 4 }}>Клиническая сводка за 7 дней</div>
+        <div style={{ fontFamily: FONT, fontSize: 13, color: C.inkSoft, lineHeight: 1.55 }}>
+          Категория: <strong>{injuryProfile?.part || "Колено"} ({injuryProfile?.phase || "Ранняя"} фаза)</strong><br />
+          Выполнение плана: <strong>86%</strong> · Боль: <strong>6 → 3</strong> · Подвижность: <strong>+3 балла</strong>
+        </div>
+        <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+          <button onClick={copyForTelegram} style={{ flex: 1, background: C.pineLight, color: C.pine, border: `1px solid ${C.pineBorder}`, borderRadius: 10, padding: "9px 0", fontFamily: FONT, fontWeight: 700, fontSize: 12.5, cursor: "pointer" }}>
+            {copiedTg ? "✓ Скопировано для TG" : "📋 Скопировать в Telegram"}
+          </button>
+          <button onClick={() => window.print()} style={{ flex: 1, background: C.bg, color: C.ink, border: `1px solid ${C.line}`, borderRadius: 10, padding: "9px 0", fontFamily: FONT, fontWeight: 600, fontSize: 12.5, cursor: "pointer" }}>
+            🖨 Печать / PDF
+          </button>
+        </div>
       </Card>
       <Card>
         {!editing ? (
@@ -1149,9 +1225,8 @@ function DoctorScreen() {
       </Card>
       <button onClick={() => setShared(true)} disabled={!doctor.phone && !doctor.email}
         style={{ width: "100%", background: (!doctor.phone && !doctor.email) ? C.line : C.pine, color: (!doctor.phone && !doctor.email) ? C.inkSoft : "#fff", border: "none", borderRadius: 12, padding: "13px 0", fontFamily: FONT, fontWeight: 700, fontSize: 14, cursor: (!doctor.phone && !doctor.email) ? "default" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-        <Share2 size={16} /> Поделиться отчётом
+        <Share2 size={16} /> Поделиться отчётом с врачом
       </button>
-      {(!doctor.phone && !doctor.email) && <div style={{ marginTop: 8, textAlign: "center", fontFamily: FONT, fontSize: 12, color: C.inkSoft }}>Добавьте контакт врача, чтобы отправить отчёт</div>}
       {shared && <div style={{ marginTop: 12, textAlign: "center", fontFamily: FONT, fontSize: 12.5, color: C.pine }}>Отчёт отправлен на {doctor.email || doctor.phone} ✓</div>}
     </div>
   );
@@ -1206,11 +1281,12 @@ function CommunityScreen({ injuryProfile, posts, onSubmit }) {
 
 function MoreSheet({ open, onClose, onNavigate }) {
   const items = [
-    { key: "calendar", icon: CalendarIcon, label: "Календарь" },
-    { key: "profile", icon: User, label: "Профиль" },
-    { key: "library", icon: BookOpen, label: "Библиотека" },
-    { key: "doctor", icon: Stethoscope, label: "Врач" },
-    { key: "community", icon: Users, label: "Сообщество" },
+    { key: "calculators", icon: Calculator, label: "Калькуляторы реабилитации" },
+    { key: "calendar", icon: CalendarIcon, label: "Календарь и напоминания" },
+    { key: "profile", icon: User, label: "Профиль и данные (GDPR)" },
+    { key: "library", icon: BookOpen, label: "Библиотека знаний" },
+    { key: "doctor", icon: Stethoscope, label: "Врач и отчёт (Telegram / PDF)" },
+    { key: "community", icon: Users, label: "Сообщество пациентов" },
   ];
   return (
     <Modal open={open} onClose={onClose} sheet>
@@ -1264,7 +1340,10 @@ export default function App() {
   const [streak] = useState(6);
   const [symptomLog, setSymptomLog] = useState(INITIAL_LOG);
   const [pain, setPain] = useState(3);
-  const [todayItems, setTodayItems] = useState([]);
+  const [todayItems, setTodayItems] = useState(() => {
+    const savedProfile = loadPersistedState("injuryProfile", null);
+    return savedProfile ? buildTodayItems(savedProfile) : [];
+  });
   const [communityPosts, setCommunityPosts] = useState(COMMUNITY_POSTS);
   const [librarySubmissions, setLibrarySubmissions] = useState([]);
 
@@ -1275,7 +1354,18 @@ export default function App() {
 
   const activeExercise = useMemo(() => EXERCISES.find(e => e.id === guidedExerciseId), [guidedExerciseId]);
 
-  if (!loggedIn) return <LoginScreen onLogin={() => setLoggedIn(true)} />;
+  const quickSwitchPart = (newPart) => {
+    const nextProfile = {
+      ...(injuryProfile || { phase: "Ранняя", pain: 3, units: "metric", activityLevel: "moderate" }),
+      part: newPart,
+      phase: injuryProfile?.phase || "Ранняя",
+    };
+    setLoggedIn(true);
+    setInjuryProfile(nextProfile);
+    setTodayItems(buildTodayItems(nextProfile));
+  };
+
+  if (!loggedIn) return <LoginScreen onLogin={() => setLoggedIn(true)} onQuickDemo={() => quickSwitchPart("Колено")} />;
 
   if (!injuryProfile) {
     return (
@@ -1298,7 +1388,7 @@ export default function App() {
   if (guidedExerciseId && activeExercise) {
     return (
       <div style={{ maxWidth: 420, margin: "0 auto", minHeight: "100dvh", background: C.bg }}>
-        <GuidedSession exercise={activeExercise} onExit={finishGuided} isPremium={isPremium} />
+        <GuidedSession exercise={activeExercise} onExit={finishGuided} />
       </div>
     );
   }
@@ -1306,7 +1396,17 @@ export default function App() {
   const isMoreTab = !PRIMARY_TABS.includes(tab);
 
   return (
-    <div style={{ maxWidth: 420, margin: "0 auto", minHeight: "100dvh", background: C.bg, display: "flex", flexDirection: "column", position: "relative" }}>
+    <div style={{ maxWidth: 420, margin: "0 auto", minHeight: "100dvh", background: C.bg, display: "flex", flexDirection: "column", position: "relative", boxShadow: "0 0 40px rgba(22,36,30,0.08)" }}>
+      {/* Верхняя панель быстрого демо-скрининга (в 1 клик) */}
+      <ExpressDemoBar
+        injuryProfile={injuryProfile}
+        onQuickSwitchPart={quickSwitchPart}
+        isPremium={isPremium}
+        onTogglePremium={() => setIsPremium(p => !p)}
+        onOpenCalculators={() => setTab("calculators")}
+        onResetOnboarding={() => setInjuryProfile(null)}
+      />
+
       <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column" }}>
         {tab === "home" && <HomeScreen todayItems={todayItems} toggleDone={toggleDone} streak={streak} onStartGuided={setGuidedExerciseId} onShowSos={() => setSosOpen(true)} />}
         {tab === "exercises" && <ExercisesScreen onSelect={id => { setGuidedExerciseId(id); }} injuryPart={injuryProfile.part} />}
@@ -1316,17 +1416,18 @@ export default function App() {
             <AiAssistantScreen isPremium={isPremium} onShowPremiumModal={() => setPremiumOpen(true)} injuryProfile={injuryProfile} />
           </div>
         )}
+        {tab === "calculators" && <CalculatorsScreen injuryProfile={injuryProfile} />}
         {tab === "calendar" && <CalendarScreen />}
         {tab === "profile" && <ProfileScreen injuryProfile={injuryProfile} onExportData={() => exportGdprDataSnapshot({ injuryProfile, symptomLog, streak })} />}
         {tab === "library" && <LibraryScreen submissions={librarySubmissions} onSubmit={item => setLibrarySubmissions(s => [{ id: `u${Date.now()}`, status: "pending", ...item }, ...s])} />}
-        {tab === "doctor" && <DoctorScreen />}
+        {tab === "doctor" && <DoctorScreen injuryProfile={injuryProfile} />}
         {tab === "community" && <CommunityScreen injuryProfile={injuryProfile} posts={communityPosts} onSubmit={item => setCommunityPosts(p => [{ id: `p${Date.now()}`, status: "pending", likes: 0, ...item }, ...p])} />}
       </div>
 
       {/* Bottom Nav */}
       <div style={{ display: "flex", borderTop: `1px solid ${C.line}`, background: C.paper, position: "sticky", bottom: 0, flexShrink: 0 }}>
         <NavButton icon={Home} label="Главная" active={tab === "home"} onClick={() => setTab("home")} />
-        <NavButton icon={Dumbbell} label="Упражнения" active={tab === "exercises"} onClick={() => setTab("exercises")} />
+        <NavButton icon={Dumbbell} label="Видео/ЛФК" active={tab === "exercises"} onClick={() => setTab("exercises")} />
         <NavButton icon={TrendingUp} label="Прогресс" active={tab === "progress"} onClick={() => setTab("progress")} />
         <NavButton icon={MessageCircle} label="ИИ" active={tab === "ai"} onClick={() => setTab("ai")} />
         <NavButton icon={MoreHorizontal} label="Ещё" active={isMoreTab} onClick={() => setMoreOpen(true)} />
