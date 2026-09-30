@@ -1,22 +1,39 @@
+// Палитра «восстановление»: спокойный хвойно-бирюзовый, тёплый коралл для энергии,
+// и светофор боли (зелёный / янтарный / красный). Значения продублированы в index.css.
 export const C = {
-  bg: "#F4F6F4",
+  bg: "#F1F5F2",
   paper: "#FFFFFF",
-  ink: "#16241E",
-  inkSoft: "#4B5B54",
-  line: "#DFE6E1",
-  pine: "#1F4A3C",
-  pineSoft: "#2F6F58",
-  pineLight: "#D9E8DF",
-  pineBorder: "#BFDCCB",
-  amber: "#6FA3C7",
-  amberDark: "#2C5D78",
-  amberSoft: "#DCEAF3",
-  rose: "#C1543F",
-  roseSoft: "#F4DAD3",
-  warning: "#D97706",
-  warningSoft: "#FEF3C7",
+  ink: "#15302B",
+  inkSoft: "#56675F",
+  muted: "#8A9A92",
+  line: "#DCE5DF",
+  teal: "#1F6B5C",
+  tealDark: "#154A40",
+  tealSoft: "#E1EFEA",
+  tealBorder: "#BCD9CF",
+  coral: "#E0795A",
+  coralSoft: "#FBE9E1",
+  sky: "#3F7EA6",
+  skySoft: "#E3EEF5",
+  green: "#2E9E6A",
+  greenSoft: "#DFF3E8",
+  amber: "#C98300",
+  amberSoft: "#FDF1D6",
+  black: "#121A18",
+  red: "#C4452F",
+  redSoft: "#F9E0DA",
 };
 
-export const FONT = "'Inter', -apple-system, BlinkMacSystemFont, sans-serif";
-export const DISPLAY = "'Fraunces', Georgia, serif";
-export const MONO = "'IBM Plex Mono', monospace";
+export const TONES = {
+  neutral: { bg: C.line, fg: C.inkSoft },
+  teal: { bg: C.tealSoft, fg: C.teal },
+  coral: { bg: C.coralSoft, fg: "#A94B2F" },
+  sky: { bg: C.skySoft, fg: C.sky },
+  green: { bg: C.greenSoft, fg: "#1E7A50" },
+  amber: { bg: C.amberSoft, fg: "#8A5A00" },
+  red: { bg: C.redSoft, fg: C.red },
+};
+
+export const FONT = "'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+export const DISPLAY = FONT;
+export const MONO = "'IBM Plex Mono', ui-monospace, monospace";

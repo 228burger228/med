@@ -1,119 +1,132 @@
-const STORAGE_PREFIX = "ainala_v2_";
+const STORAGE_PREFIX = "ainala_v3_";
 
 /**
- * Очистка пользовательского ввода от потенциальных XSS-векторов и управляющих символов
+ * Нормализация пользовательского текста: убираем управляющие символы и ограничиваем длину.
+ * HTML-экранирование не нужно — React экранирует весь выводимый текст сам.
  */
 export function sanitizeText(input, maxLength = 1000) {
   if (typeof input !== "string") return "";
-  return input
-    .replace(/[<>]/g, (ch) => (ch === "<" ? "‹" : "›"))
-    .replace(/javascript:/gi, "")
-    .replace(/on\w+=/gi, "")
-    .slice(0, maxLength);
+  // eslint-disable-next-line no-control-regex
+  return input.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "").trim().slice(0, maxLength);
 }
 
-/**
- * Проверка описания симптомов на наличие «Красных флагов» (экстренных состояний)
- */
+/** Разрешаем только http(s)-ссылки (защита от javascript:/data: URL). */
+export function safeUrl(input) {
+  try {
+    const u = new URL(String(input).trim());
+    return u.protocol === "http:" || u.protocol === "https:" ? u.href : null;
+  } catch {
+    return null;
+  }
+}
+
+// ─── «Красные флаги» ─────────────────────────────────────────────────────────
+
+const L = "(?<![а-яa-z])"; // начало слова (кириллица не поддерживается \b)
+
+const RED_FLAG_RULES = [
+  {
+    level: "critical",
+    title: "Возможный тромбоз или тромбоэмболия",
+    message:
+      "Одышка, боль в груди или резкий отёк икры требуют немедленной оценки врачом. Прекратите упражнения и вызовите скорую помощь (103 / 112).",
+    patterns: [
+      `${L}задыха`, `${L}одышк`, `${L}нехватк\\S* воздуха`, `${L}не могу дышать`,
+      `${L}бол\\S* в груд`, `${L}давит в груд`, `${L}тромб`,
+      `${L}отек\\S*[^.!?]{0,30}${L}(икр|голен)`, `${L}(икр|голен)\\S*[^.!?]{0,30}${L}отек`,
+    ],
+  },
+  {
+    level: "critical",
+    title: "Признак нарушения кровообращения или иннервации",
+    message:
+      "Онемение, похолодание, побледнение или посинение пальцев могут означать сдавление сосудов или нервов. Ослабьте повязку/ортез и срочно свяжитесь с врачом.",
+    patterns: [
+      `${L}онемел`, `${L}немеют`, `${L}не чувствую пальц`, `${L}посинел`, `${L}синеют`,
+      `${L}холодн\\S* пальц`, `${L}пальц\\S* холодн`, `${L}паралич`, `${L}не могу пошевелить`,
+    ],
+  },
+  {
+    level: "urgent",
+    title: "Возможные признаки инфекции",
+    message:
+      "Температура 38 °C и выше, гной или расхождение шва — повод приостановить тренировки и в течение суток связаться с хирургом/травматологом.",
+    patterns: [
+      `${L}гно[йия]`, `${L}разош\\S* шов`, `${L}шов разош`,
+      `${L}(температур\\S*|t|т)\\s*(под|около|выше|уже|до)?\\s*(3[89]|4[0-2])([.,]\\d)?(?!\\d)`,
+      `${L}жар(?![а-я])`, `${L}лихорад`, `${L}озноб`,
+    ],
+  },
+];
+
+const NEGATION = /(?<![а-я])(нет|без|не было|отсутству\S*)\s+(\S+\s+)?$/;
+
+/** Ищет опасные симптомы, игнорируя явные отрицания («нет одышки», «без отёка»). */
 export function detectRedFlagsInText(text) {
   if (!text || typeof text !== "string") return null;
-  const t = text.toLowerCase();
-
-  if (
-    t.includes("задыха") ||
-    t.includes("одышк") ||
-    t.includes("боль в груд") ||
-    t.includes("тромб") ||
-    (t.includes("отек") && t.includes("икр")) ||
-    (t.includes("отёк") && t.includes("икр"))
-  ) {
-    return {
-      level: "critical",
-      title: "Внимание: возможный сосудистый/тромбоэмболический риск",
-      message:
-        "Описанные симптомы (одышка, боль в груди или резкий отёк икры) требуют немедленной оценки врачом. Не выполняйте упражнения и обратитесь в скорую помощь (103 / 112).",
-    };
+  const t = text.toLowerCase().replace(/ё/g, "е");
+  for (const rule of RED_FLAG_RULES) {
+    for (const p of rule.patterns) {
+      const re = new RegExp(p, "g");
+      let m;
+      while ((m = re.exec(t))) {
+        const before = t.slice(Math.max(0, m.index - 24), m.index);
+        if (!NEGATION.test(before)) {
+          return { level: rule.level, title: rule.title, message: rule.message };
+        }
+      }
+    }
   }
-
-  if (
-    t.includes("онемел") ||
-    t.includes("не чувствую пальц") ||
-    t.includes("посинел") ||
-    t.includes("холодные пальц") ||
-    t.includes("паралич")
-  ) {
-    return {
-      level: "critical",
-      title: "Внимание: признак сосудисто-неврологического дефицита",
-      message:
-        "Онемение, похолодание или изменение цвета пальцев может указывать на сдавление сосудов или нервов. Ослабьте повязку/ортез и срочно свяжитесь с врачом.",
-    };
-  }
-
-  if (
-    t.includes("гной") ||
-    t.includes("разошелся шов") ||
-    t.includes("разошёлся шов") ||
-    t.includes("температура 38") ||
-    t.includes("температура 39") ||
-    t.includes("жар ")
-  ) {
-    return {
-      level: "urgent",
-      title: "Требуется осмотр врача (признаки воспаления)",
-      message:
-        "Повышение температуры тела или выделения из области шва — повод приостановить тренировки и обратиться к лечащему хирургу/травматологу.",
-    };
-  }
-
   return null;
 }
 
-/**
- * Безопасное чтение и запись состояния в localStorage с изоляцией ключей
- */
+// ─── Локальное хранилище ─────────────────────────────────────────────────────
+
 export function loadPersistedState(key, fallback) {
   try {
     const raw = localStorage.getItem(`${STORAGE_PREFIX}${key}`);
-    if (!raw) return fallback;
+    if (raw == null) return fallback;
     return JSON.parse(raw);
   } catch {
     return fallback;
   }
 }
 
+/** Возвращает false, если запись не удалась (например, переполнена квота). */
 export function savePersistedState(key, value) {
   try {
     localStorage.setItem(`${STORAGE_PREFIX}${key}`, JSON.stringify(value));
+    return true;
   } catch {
-    // Игнорируем переполнение квоты (например, при больших фото)
+    return false;
   }
 }
 
 export function wipeAllPersistedData() {
   try {
     Object.keys(localStorage).forEach((k) => {
-      if (k.startsWith(STORAGE_PREFIX)) {
-        localStorage.removeItem(k);
-      }
+      if (k.startsWith(STORAGE_PREFIX)) localStorage.removeItem(k);
     });
   } catch {
     // ignore
   }
 }
 
-export function exportGdprDataSnapshot(stateObj) {
+export function exportDataSnapshot(stateObj) {
   const payload = {
     exportedAt: new Date().toISOString(),
-    appVersion: "Ainala MVP 0.2.0",
-    complianceStandard: "HIPAA / GDPR / 152-FZ Patient Portability Format",
+    appVersion: "Ainala 0.3.0",
+    note: "Данные хранились только на этом устройстве (localStorage браузера).",
     data: stateObj,
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `ainala-patient-export-${new Date().toISOString().slice(0, 10)}.json`;
+  a.download = `ainala-export-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(url);
+  a.remove();
+  // Отзываем ссылку с задержкой, иначе Safari/Firefox могут прервать загрузку
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
 }

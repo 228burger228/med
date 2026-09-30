@@ -1,84 +1,94 @@
 -- =========================================================================
--- Supabase Schema for Ainala Rehab MVP (MedTech Security & RLS Standard)
+-- Supabase schema for Ainala (not yet used by the web app — data is local).
+-- Values are stable codes; the UI maps them to Russian labels.
 -- =========================================================================
 
--- 1. Профили пациентов (минимизация персональных данных — Privacy by Design)
+-- Shared trigger for updated_at
+CREATE OR REPLACE FUNCTION public.set_updated_at()
+RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$;
+
+-- 1. Patient profiles (data minimisation)
 CREATE TABLE IF NOT EXISTS public.patient_profiles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
-    display_name TEXT NOT NULL DEFAULT 'Пациент',
-    injury_part TEXT NOT NULL CHECK (injury_part IN ('Колено', 'Плечо', 'Спина', 'Перелом руки', 'Голеностоп')),
-    rehab_phase TEXT NOT NULL CHECK (rehab_phase IN ('Ранняя', 'Средняя', 'Поздняя')),
-    activity_level TEXT DEFAULT 'moderate' CHECK (activity_level IN ('low', 'moderate', 'active')),
-    baseline_pain INT DEFAULT 3 CHECK (baseline_pain BETWEEN 0 AND 10),
-    units TEXT DEFAULT 'metric' CHECK (units IN ('metric', 'imperial')),
-    meta JSONB DEFAULT '{}'::jsonb,
-    created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ DEFAULT now()
+    user_id UUID NOT NULL UNIQUE DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE,
+    display_name TEXT NOT NULL DEFAULT 'Пациент' CHECK (char_length(display_name) <= 40),
+    injury_part TEXT NOT NULL CHECK (injury_part IN ('knee', 'shoulder', 'back', 'arm_fracture', 'ankle')),
+    rehab_phase TEXT NOT NULL CHECK (rehab_phase IN ('early', 'mid', 'late')),
+    injury_date DATE,
+    activity_level TEXT NOT NULL DEFAULT 'moderate' CHECK (activity_level IN ('low', 'moderate', 'active')),
+    baseline_pain INT NOT NULL DEFAULT 3 CHECK (baseline_pain BETWEEN 0 AND 10),
+    units TEXT NOT NULL DEFAULT 'metric' CHECK (units IN ('metric', 'imperial')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- 2. Дневник боли, симптомов, сна и питания
-CREATE TABLE IF NOT EXISTS public.symptom_logs (
+DROP TRIGGER IF EXISTS trg_patient_profiles_updated ON public.patient_profiles;
+CREATE TRIGGER trg_patient_profiles_updated
+    BEFORE UPDATE ON public.patient_profiles
+    FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+-- 2. Daily pain log (one row per day)
+CREATE TABLE IF NOT EXISTS public.pain_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE,
     logged_date DATE NOT NULL DEFAULT CURRENT_DATE,
     pain_score INT NOT NULL CHECK (pain_score BETWEEN 0 AND 10),
-    mobility_score INT CHECK (mobility_score BETWEEN 0 AND 10),
-    sleep_hours NUMERIC(3,1) CHECK (sleep_hours BETWEEN 0 AND 24),
-    swelling_level TEXT DEFAULT 'Минимальный',
-    notes TEXT,
-    red_flag_triggered BOOLEAN DEFAULT false,
-    created_at TIMESTAMPTZ DEFAULT now()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (user_id, logged_date)
 );
 
-CREATE INDEX IF NOT EXISTS idx_symptom_logs_user_date ON public.symptom_logs(user_id, logged_date DESC);
+-- 3. Symptom diary
+CREATE TABLE IF NOT EXISTS public.diary_entries (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE,
+    logged_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    notes TEXT NOT NULL CHECK (char_length(notes) <= 500),
+    red_flag TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 
--- 3. Выполненные сессии упражнений
+CREATE INDEX IF NOT EXISTS idx_pain_logs_user_date ON public.pain_logs(user_id, logged_date DESC);
+CREATE INDEX IF NOT EXISTS idx_diary_user_date ON public.diary_entries(user_id, logged_date DESC);
+
+-- 4. Completed exercise sessions
 CREATE TABLE IF NOT EXISTS public.exercise_sessions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE,
     exercise_id TEXT NOT NULL,
-    completed_sets INT NOT NULL,
-    rpe_pain_after INT CHECK (rpe_pain_after BETWEEN 0 AND 10),
-    completed_at TIMESTAMPTZ DEFAULT now()
+    session_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    pain_after INT CHECK (pain_after BETWEEN 0 AND 10),
+    completed_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- 4. Модерируемые посты сообщества
-CREATE TABLE IF NOT EXISTS public.community_posts (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    author_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
-    author_display TEXT NOT NULL,
-    injury_tag TEXT NOT NULL,
-    content TEXT NOT NULL CHECK (char_length(content) <= 600),
-    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
-    likes_count INT DEFAULT 0,
-    created_at TIMESTAMPTZ DEFAULT now()
-);
+CREATE INDEX IF NOT EXISTS idx_sessions_user_date ON public.exercise_sessions(user_id, session_date DESC);
 
 -- =========================================================================
--- Row Level Security (RLS) — строгая изоляция медицинских данных (HIPAA / 152-ФЗ)
+-- Row Level Security: each patient sees and changes only their own rows.
+-- WITH CHECK is explicit so a user can't insert/update rows for someone else.
 -- =========================================================================
 ALTER TABLE public.patient_profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.symptom_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.pain_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.diary_entries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.exercise_sessions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.community_posts ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Пациент управляет только своим профилем"
-    ON public.patient_profiles FOR ALL
-    USING (auth.uid() = user_id);
+CREATE POLICY "own profile" ON public.patient_profiles
+    FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Пациент видит и создаёт только свои записи симптомов"
-    ON public.symptom_logs FOR ALL
-    USING (auth.uid() = user_id);
+CREATE POLICY "own pain logs" ON public.pain_logs
+    FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Пациент управляет только своими тренировками"
-    ON public.exercise_sessions FOR ALL
-    USING (auth.uid() = user_id);
+CREATE POLICY "own diary" ON public.diary_entries
+    FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Все видят только одобренные посты сообщества или свои собственные"
-    ON public.community_posts FOR SELECT
-    USING (status = 'approved' OR auth.uid() = author_id);
+CREATE POLICY "own sessions" ON public.exercise_sessions
+    FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Авторизованный пациент может отправлять пост на модерацию"
-    ON public.community_posts FOR INSERT
-    WITH CHECK (auth.uid() = author_id AND status = 'pending');
+-- Note: a community feed was removed from this schema. If added back, derive the
+-- author name from patient_profiles server-side (no free-text author field) and
+-- moderate with a role that bypasses RLS rather than a client-writable status.
+-- For 152-FZ, host the database in a Russian region.
